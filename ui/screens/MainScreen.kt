@@ -25,6 +25,8 @@ import com.mohamed.pdfreader.navigation.Screen
 import com.mohamed.pdfreader.ui.screens.bookmarks.BookmarksScreen
 import com.mohamed.pdfreader.ui.screens.reader.PdfReaderScreen
 import com.mohamed.pdfreader.ui.screens.recent.RecentScreen
+import com.mohamed.pdfreader.ui.screens.search.SearchScreen
+import com.mohamed.pdfreader.ui.screens.settings.SettingsScreen
 
 @Composable
 fun MainScreen() {
@@ -84,8 +86,16 @@ fun MainScreen() {
                 })
             }
             
-            composable(Screen.Search.route) { PlaceholderScreen("شاشة البحث المتقدم") }
-            composable(Screen.Settings.route) { PlaceholderScreen("شاشة الإعدادات") }
+            composable(Screen.Search.route) { 
+                SearchScreen(onPdfClick = { uri ->
+                    val encodedUri = Uri.encode(uri.toString())
+                    navController.navigate(Screen.Reader.createRoute(encodedUri))
+                }) 
+            }
+            
+            composable(Screen.Settings.route) { 
+                SettingsScreen() 
+            }
             
             composable(Screen.Reader.route) { backStackEntry ->
                 val fileUriStr = backStackEntry.arguments?.getString("fileUri") ?: ""
@@ -93,12 +103,5 @@ fun MainScreen() {
                 PdfReaderScreen(uri = Uri.parse(decodedUri), onBack = { navController.popBackStack() })
             }
         }
-    }
-}
-
-@Composable
-fun PlaceholderScreen(title: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
     }
 }
