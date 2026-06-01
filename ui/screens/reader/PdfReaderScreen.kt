@@ -1,14 +1,17 @@
 package com.mohamed.pdfreader.ui.screens.reader
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,6 +39,7 @@ fun PdfReaderScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
     
     val selectedWord by viewModel.selectedWord.collectAsState()
     val translationResult by viewModel.translationResult.collectAsState()
@@ -50,6 +54,11 @@ fun PdfReaderScreen(
     val density = LocalDensity.current
     val screenWidthPx = with(density) { configuration.screenWidthDp.dp.roundToPx() }
 
+    // حساب الصفحة الحالية المعروضة أمام المستخدم للـ Bookmark
+    val currentPageIndex by remember {
+        derivedStateOf { listState.firstVisibleItemIndex }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,12 +68,21 @@ fun PdfReaderScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "رجوع", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 },
+                actions = {
+                    IconButton(onClick = {
+                        viewModel.addBookmark(uri.toString(), currentPageIndex)
+                        Toast.makeText(context, "تم حفظ الإشارة المرجعية", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(Icons.Default.BookmarkAdd, contentDescription = "إضافة إشارة", tint = MaterialTheme.colorScheme.onPrimary)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
             )
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
@@ -77,8 +95,6 @@ fun PdfReaderScreen(
                         scope.launch {
                             val renderedBmp = pdfCore.renderPage(index, screenWidthPx)
                             bitmap = renderedBmp
-                            // بمجرد تحميل الصفحة الأولى، نستخرج النص منها للترجمة
-                            // يمكن تطويرها لاحقاً لتعمل مع الصفحة المعروضة فقط
                             if (index == 0 && renderedBmp != null) {
                                 viewModel.processPageForOcr(renderedBmp)
                             }
@@ -94,14 +110,11 @@ fun PdfReaderScreen(
                                 .padding(bottom = 8.dp)
                                 .pointerInput(Unit) {
                                     detectTapGestures { tapOffset ->
-                                        // البحث هل الضغطة جاءت فوق كلمة معينة؟
                                         val x = tapOffset.x.toInt()
                                         val y = tapOffset.y.toInt()
-                                        
                                         val tappedWord = wordsList.find { wordBox ->
                                             wordBox.boundingBox.contains(x, y)
                                         }
-                                        
                                         if (tappedWord != null) {
                                             viewModel.onWordTapped(tappedWord.text)
                                         }
@@ -111,9 +124,7 @@ fun PdfReaderScreen(
                         )
                     } else {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(500.dp),
+                            modifier = Modifier.fillMaxWidth().height(500.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator()
@@ -122,7 +133,6 @@ fun PdfReaderScreen(
                 }
             }
 
-            // بطاقة الترجمة والنطق السفلية (BottomSheet)
             if (selectedWord != null) {
                 ModalBottomSheet(
                     onDismissRequest = { viewModel.dismissTranslationDialog() },
@@ -130,9 +140,7 @@ fun PdfReaderScreen(
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Row(
@@ -149,30 +157,20 @@ fun PdfReaderScreen(
                             Spacer(modifier = Modifier.width(16.dp))
                             IconButton(
                                 onClick = { viewModel.speakWord(selectedWord ?: "") },
-                                modifier = Modifier.background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), 
-                                    shape = RoundedCornerShape(50)
-                                )
+                                modifier = Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), shape = RoundedCornerShape(50))
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.VolumeUp,
-                                    contentDescription = "استمع",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                                Icon(Icons.Default.VolumeUp, contentDescription = "استمع", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
-                        
                         Spacer(modifier = Modifier.height(16.dp))
                         Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                         Spacer(modifier = Modifier.height(16.dp))
-                        
                         Text(
                             text = translationResult ?: "",
                             fontSize = 22.sp,
                             color = MaterialTheme.colorScheme.onSurface,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
-                        
                         Spacer(modifier = Modifier.height(32.dp))
                     }
                 }
