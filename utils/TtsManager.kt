@@ -2,11 +2,16 @@ package com.mohamed.pdfreader.utils
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import com.mohamed.pdfreader.data.local.SettingsManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
 
-class TtsManager(context: Context) : TextToSpeech.OnInitListener {
+class TtsManager(
+    context: Context, 
+    private val settingsManager: SettingsManager
+) : TextToSpeech.OnInitListener {
+    
     private var tts: TextToSpeech? = null
     
     private val _isInitialized = MutableStateFlow(false)
@@ -18,7 +23,6 @@ class TtsManager(context: Context) : TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            // تعيين اللغة الألمانية كافتراضية لأنها الأهم في مشروعك
             val result = tts?.setLanguage(Locale.GERMAN)
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
                 _isInitialized.value = true
@@ -30,8 +34,8 @@ class TtsManager(context: Context) : TextToSpeech.OnInitListener {
         if (_isInitialized.value) {
             val locale = if (isGerman) Locale.GERMAN else Locale("ar")
             tts?.language = locale
-            // تقليل سرعة النطق قليلاً لتسهيل التعلم (0.8 بدلاً من 1.0)
-            tts?.setSpeechRate(0.8f)
+            // جلب السرعة من الإعدادات التي اختارها المستخدم
+            tts?.setSpeechRate(settingsManager.ttsSpeed.value)
             tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "TTS_ID")
         }
     }
