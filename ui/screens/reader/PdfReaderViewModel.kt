@@ -36,6 +36,10 @@ class PdfReaderViewModel @Inject constructor(
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing
 
+    // للتحكم في واجهة القفز لصفحة محددة
+    private val _showJumpDialog = MutableStateFlow(false)
+    val showJumpDialog: StateFlow<Boolean> = _showJumpDialog
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             translationManager.downloadModelsIfNeeded()
@@ -80,6 +84,10 @@ class PdfReaderViewModel @Inject constructor(
             )
             bookmarkDao.insertBookmark(bookmark)
         }
+    }
+
+    fun setShowJumpDialog(show: Boolean) {
+        _showJumpDialog.value = show
     }
 
     override fun onCleared() {
