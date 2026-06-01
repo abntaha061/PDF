@@ -1,6 +1,7 @@
 package com.mohamed.pdfreader.di
 
 import android.content.Context
+import com.mohamed.pdfreader.data.local.SettingsManager
 import com.mohamed.pdfreader.utils.OcrManager
 import com.mohamed.pdfreader.utils.TranslationManager
 import com.mohamed.pdfreader.utils.TtsManager
@@ -17,8 +18,17 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideTtsManager(@ApplicationContext context: Context): TtsManager {
-        return TtsManager(context)
+    fun provideSettingsManager(@ApplicationContext context: Context): SettingsManager {
+        return SettingsManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTtsManager(
+        @ApplicationContext context: Context, 
+        settingsManager: SettingsManager
+    ): TtsManager {
+        return TtsManager(context, settingsManager)
     }
 
     @Provides
