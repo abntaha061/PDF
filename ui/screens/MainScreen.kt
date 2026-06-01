@@ -22,24 +22,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mohamed.pdfreader.navigation.Screen
+import com.mohamed.pdfreader.ui.screens.bookmarks.BookmarksScreen
 import com.mohamed.pdfreader.ui.screens.reader.PdfReaderScreen
 import com.mohamed.pdfreader.ui.screens.recent.RecentScreen
 
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    val bottomNavItems = listOf(
-        Screen.Recent,
-        Screen.Bookmarks,
-        Screen.Search,
-        Screen.Settings
-    )
+    val bottomNavItems = listOf(Screen.Recent, Screen.Bookmarks, Screen.Search, Screen.Settings)
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
-    
-    // إخفاء الشريط السفلي في شاشة القارئ
     val showBottomBar = currentRoute in bottomNavItems.map { it.route }
 
     Scaffold(
@@ -63,9 +57,7 @@ fun MainScreen() {
                             ),
                             onClick = {
                                 navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -76,37 +68,29 @@ fun MainScreen() {
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Recent.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
+        NavHost(navController = navController, startDestination = Screen.Recent.route, modifier = Modifier.padding(innerPadding)) {
             
-            // 1. شاشة الملفات الأخيرة (الرئيسية)
             composable(Screen.Recent.route) { 
-                RecentScreen(
-                    onPdfClick = { uri ->
-                        // تشفير مسار الملف (URI) لتمريره بأمان في الـ Navigation
-                        val encodedUri = Uri.encode(uri.toString())
-                        navController.navigate(Screen.Reader.createRoute(encodedUri))
-                    }
-                )
+                RecentScreen(onPdfClick = { uri ->
+                    val encodedUri = Uri.encode(uri.toString())
+                    navController.navigate(Screen.Reader.createRoute(encodedUri))
+                })
             }
             
-            composable(Screen.Bookmarks.route) { PlaceholderScreen("شاشة الإشارات المرجعية") }
+            composable(Screen.Bookmarks.route) { 
+                BookmarksScreen(onBookmarkClick = { uriStr ->
+                    val encodedUri = Uri.encode(uriStr)
+                    navController.navigate(Screen.Reader.createRoute(encodedUri))
+                })
+            }
+            
             composable(Screen.Search.route) { PlaceholderScreen("شاشة البحث المتقدم") }
             composable(Screen.Settings.route) { PlaceholderScreen("شاشة الإعدادات") }
             
-            // 2. شاشة القارئ الفعلي
             composable(Screen.Reader.route) { backStackEntry ->
                 val fileUriStr = backStackEntry.arguments?.getString("fileUri") ?: ""
-                // فك التشفير بعد الاستلام
                 val decodedUri = Uri.decode(fileUriStr)
-                
-                PdfReaderScreen(
-                    uri = Uri.parse(decodedUri),
-                    onBack = { navController.popBackStack() }
-                )
+                PdfReaderScreen(uri = Uri.parse(decodedUri), onBack = { navController.popBackStack() })
             }
         }
     }
@@ -114,14 +98,7 @@ fun MainScreen() {
 
 @Composable
 fun PlaceholderScreen(title: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
     }
 }
