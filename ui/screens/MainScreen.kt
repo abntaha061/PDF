@@ -1,5 +1,6 @@
 package com.mohamed.pdfreader.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mohamed.pdfreader.navigation.Screen
+import com.mohamed.pdfreader.ui.screens.reader.PdfReaderScreen
+import com.mohamed.pdfreader.ui.screens.recent.RecentScreen
 
 @Composable
 fun MainScreen() {
@@ -78,21 +81,32 @@ fun MainScreen() {
             startDestination = Screen.Recent.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            
+            // 1. شاشة الملفات الأخيرة (الرئيسية)
             composable(Screen.Recent.route) { 
-                PlaceholderScreen("شاشة الملفات الأخيرة (الرئيسية)") 
+                RecentScreen(
+                    onPdfClick = { uri ->
+                        // تشفير مسار الملف (URI) لتمريره بأمان في الـ Navigation
+                        val encodedUri = Uri.encode(uri.toString())
+                        navController.navigate(Screen.Reader.createRoute(encodedUri))
+                    }
+                )
             }
-            composable(Screen.Bookmarks.route) { 
-                PlaceholderScreen("شاشة الإشارات المرجعية") 
-            }
-            composable(Screen.Search.route) { 
-                PlaceholderScreen("شاشة البحث المتقدم") 
-            }
-            composable(Screen.Settings.route) { 
-                PlaceholderScreen("شاشة الإعدادات") 
-            }
+            
+            composable(Screen.Bookmarks.route) { PlaceholderScreen("شاشة الإشارات المرجعية") }
+            composable(Screen.Search.route) { PlaceholderScreen("شاشة البحث المتقدم") }
+            composable(Screen.Settings.route) { PlaceholderScreen("شاشة الإعدادات") }
+            
+            // 2. شاشة القارئ الفعلي
             composable(Screen.Reader.route) { backStackEntry ->
-                val fileUri = backStackEntry.arguments?.getString("fileUri")
-                PlaceholderScreen("شاشة القارئ للملف: $fileUri")
+                val fileUriStr = backStackEntry.arguments?.getString("fileUri") ?: ""
+                // فك التشفير بعد الاستلام
+                val decodedUri = Uri.decode(fileUriStr)
+                
+                PdfReaderScreen(
+                    uri = Uri.parse(decodedUri),
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
     }
