@@ -3,6 +3,8 @@ package com.mohamed.pdfreader.ui.screens.reader
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mohamed.pdfreader.data.local.BookmarkDao
+import com.mohamed.pdfreader.domain.model.BookmarkEntity
 import com.mohamed.pdfreader.utils.OcrManager
 import com.mohamed.pdfreader.utils.TranslationManager
 import com.mohamed.pdfreader.utils.TtsManager
@@ -18,27 +20,23 @@ import javax.inject.Inject
 class PdfReaderViewModel @Inject constructor(
     private val ttsManager: TtsManager,
     private val translationManager: TranslationManager,
-    private val ocrManager: OcrManager
+    private val ocrManager: OcrManager,
+    private val bookmarkDao: BookmarkDao
 ) : ViewModel() {
 
-    // قائمة الكلمات المستخرجة من الصفحة الحالية
     private val _currentWords = MutableStateFlow<List<WordBox>>(emptyList())
     val currentWords: StateFlow<List<WordBox>> = _currentWords
 
-    // الكلمة التي ضغط عليها المستخدم
     private val _selectedWord = MutableStateFlow<String?>(null)
     val selectedWord: StateFlow<String?> = _selectedWord
 
-    // نتيجة الترجمة
     private val _translationResult = MutableStateFlow<String?>(null)
     val translationResult: StateFlow<String?> = _translationResult
 
-    // حالة التحميل (قاموس الترجمة أو معالجة الصفحة)
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing
 
     init {
-        // بمجرد فتح الشاشة، نبدأ بتحميل نموذج الترجمة الألماني-العربي لو لم يكن موجوداً
         viewModelScope.launch(Dispatchers.IO) {
             translationManager.downloadModelsIfNeeded()
         }
@@ -70,6 +68,18 @@ class PdfReaderViewModel @Inject constructor(
     fun dismissTranslationDialog() {
         _selectedWord.value = null
         _translationResult.value = null
+    }
+
+    fun addBookmark(uri: String, pageIndex: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val bookmark = BookmarkEntity(
+                fileUri = uri,
+                pageIndex = pageIndex,
+                title = "تم الحفظ عند صفحة ${pageIndex + 1}",
+                timestamp = System.currentTimeMillis()
+            )
+            bookmarkDao.insertBookmark(bookmark)
+        }
     }
 
     override fun onCleared() {
